@@ -852,10 +852,10 @@ namespace eosio {
 
         // 过滤交易
 
-        if (base.act.name != "transfer" && base.act.name != "create") {
+        if (base.act.name != "transfer" && base.act.name != "create" && base.act.name != "buyram" && base.act.name != "sellram" && base.act.name != "delegatebw" && base.act.name != "undelegatebw") {
           return added;
         }
-        
+
         try {
           const auto& value = bsoncxx::from_json( json );
           action_traces_doc.append( bsoncxx::builder::concatenate_doc{value.view()} );
@@ -940,22 +940,24 @@ namespace eosio {
             }
           }
 
-          
+
           if (!added) {
             return added;
           }
         }
-        
-        // {"v1", trx_id, contract_name, action_name, from, to, quantity, memo, block_num, block_time, trx_status, global_sequence, issuer, maximum_supply};
-        vector<string> result;
-        result =  {"v1", trx_id, contract_name, action_name, from, to, quantity, memo, block_num, block_time, trx_status, global_sequence, issuer, maximum_supply};
-        string joined = boost::algorithm::join(result, "```");
-        vector<string> values {joined};
 
-        //cout << joined << endl;
-      
-        client.rpush("eos:trx:queue", values);
-        client.sync_commit();      
+        // {"v1", trx_id, contract_name, action_name, from, to, quantity, memo, block_num, block_time, trx_status, global_sequence, issuer, maximum_supply};
+        if (from != "" && to != "") {
+          vector<string> result;
+          result =  {"v1", trx_id, contract_name, action_name, from, to, quantity, memo, block_num, block_time, trx_status, global_sequence, issuer, maximum_supply};
+          string joined = boost::algorithm::join(result, "```");
+          vector<string> values {joined};
+
+          //cout << joined << endl;
+
+          client.rpush("eos:trx:queue", values);
+          client.sync_commit();
+        }
 
         //return added;
         mongocxx::model::insert_one insert_op{action_traces_doc.view()};
@@ -1032,7 +1034,7 @@ namespace eosio {
       }
     }
 
-    // insert action_traces
+    //insert action_traces
     // try {
     //   if( !bulk_action_traces.execute() ) {
     //     EOS_ASSERT( false, chain::mongo_db_insert_fail,
@@ -1056,7 +1058,7 @@ namespace eosio {
     auto block_num = bs->block_num;
     if( block_num % 1000 == 0 )
       ilog( "block_num: ${b}", ("b", block_num) );
-    
+
     const auto& block_id = bs->id;
     const auto block_id_str = block_id.str();
 
@@ -1749,7 +1751,7 @@ namespace eosio {
         string redis_ip = options.at( "redis-ip-address" ).as<string>();
         uint32_t redis_port = options.at( "redis-port" ).as<uint32_t>();
 
-        
+
         //client.add_sentinel(redis_ip, redis_port);
         client.connect(redis_ip, redis_port, [](const std::string& host, std::size_t port, cpp_redis::client::connect_state status) {
         if (status == cpp_redis::client::connect_state::dropped) {
@@ -1775,7 +1777,7 @@ namespace eosio {
         }
       });
       client.sync_commit();
-      print_accounts();
+      // print_accounts();
 
     } FC_LOG_AND_RETHROW()
   }
@@ -1793,7 +1795,7 @@ namespace eosio {
 
     my.reset();
      // TODO: 保存到文件
-    print_accounts();
+    // print_accounts();
   }
 
 } // namespace eosio
